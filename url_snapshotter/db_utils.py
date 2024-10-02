@@ -1,17 +1,27 @@
 # url_snapshotter/db_utils.py
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship, scoped_session
 import os
 from datetime import datetime
+
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+)
+from sqlalchemy.orm import declarative_base, relationship, scoped_session, sessionmaker
 
 from url_snapshotter.logger_utils import setup_logger
 
 Base = declarative_base()
 logger = setup_logger()
 
+
 class Snapshot(Base):
-    __tablename__ = 'snapshots'
+    __tablename__ = "snapshots"
 
     snapshot_id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
@@ -20,15 +30,17 @@ class Snapshot(Base):
         "URLSnapshot",
         back_populates="snapshot",
         cascade="all, delete-orphan",
-        passive_deletes=True
+        passive_deletes=True,
     )
 
 
 class URLSnapshot(Base):
-    __tablename__ = 'url_snapshots'
+    __tablename__ = "url_snapshots"
 
     id = Column(Integer, primary_key=True)
-    snapshot_id = Column(Integer, ForeignKey('snapshots.snapshot_id', ondelete="CASCADE"), nullable=False)
+    snapshot_id = Column(
+        Integer, ForeignKey("snapshots.snapshot_id", ondelete="CASCADE"), nullable=False
+    )
     url = Column(Text, nullable=False)
     http_code = Column(Integer)
     content_hash = Column(String, nullable=False)
@@ -41,17 +53,23 @@ class DatabaseManager:
     def __init__(self, timeout: int = 30):
         self.use_in_memory_db = self._use_in_memory_db()
         self.db_url = self._get_db_url()
-        self.engine = create_engine(self.db_url, connect_args={"timeout": timeout}, future=True)
-        self.Session = scoped_session(sessionmaker(bind=self.engine, expire_on_commit=False))
+        self.engine = create_engine(
+            self.db_url, connect_args={"timeout": timeout}, future=True
+        )
+        self.Session = scoped_session(
+            sessionmaker(bind=self.engine, expire_on_commit=False)
+        )
         self._initialize_db()
 
     def _use_in_memory_db(self) -> bool:
         """Check environment variable to decide database type."""
-        return os.getenv('USE_IN_MEMORY_DB', 'false').lower() == 'true'
+        return os.getenv("USE_IN_MEMORY_DB", "false").lower() == "true"
 
     def _get_db_url(self) -> str:
         """Return database URL based on the environment."""
-        return 'sqlite:///:memory:' if self.use_in_memory_db else 'sqlite:///snapshots.db'
+        return (
+            "sqlite:///:memory:" if self.use_in_memory_db else "sqlite:///snapshots.db"
+        )
 
     def _initialize_db(self):
         """Initialize database tables."""
@@ -69,15 +87,14 @@ class DatabaseManager:
             session.add(snapshot)
             session.flush()  # Flush to assign snapshot_id without committing
 
-            # Add URL snapshots
             for url_entry in urls:
                 url_snapshot = URLSnapshot(
                     snapshot_id=snapshot.snapshot_id,
-                    url=url_entry['url'],
-                    http_code=url_entry['http_code'],
-                    content_hash=url_entry['content_hash'],
-                    full_content=url_entry['full_content'],
-                    created_at=datetime.utcnow()
+                    url=url_entry["url"],
+                    http_code=url_entry["http_code"],
+                    content_hash=url_entry["content_hash"],
+                    full_content=url_entry["full_content"],
+                    created_at=datetime.utcnow(),
                 )
                 session.add(url_snapshot)
 
@@ -104,15 +121,17 @@ class DatabaseManager:
         """Retrieve snapshot data for a specific snapshot ID."""
         session = self.get_session()
         try:
-            snapshot = session.query(Snapshot).filter_by(snapshot_id=snapshot_id).one_or_none()
+            snapshot = (
+                session.query(Snapshot).filter_by(snapshot_id=snapshot_id).one_or_none()
+            )
             if not snapshot:
                 return []
             return [
                 {
-                    'url': url_snapshot.url,
-                    'http_code': url_snapshot.http_code,
-                    'content_hash': url_snapshot.content_hash,
-                    'full_content': url_snapshot.full_content
+                    "url": url_snapshot.url,
+                    "http_code": url_snapshot.http_code,
+                    "content_hash": url_snapshot.content_hash,
+                    "full_content": url_snapshot.full_content,
                 }
                 for url_snapshot in snapshot.url_snapshots
             ]
