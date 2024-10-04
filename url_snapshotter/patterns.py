@@ -3,10 +3,9 @@
 import re
 
 
-def get_patterns():
+def get_patterns() -> list[dict[str, any]]:
     """Returns a list of patterns for cleaning content."""
     return [
-        # Adjust regex to be more flexible in matching nonce patterns
         {
             "pattern": re.compile(
                 r'<script nonce="[^"]+">window\.\w+_CSP_NONCE\s*=\s*\'[^\']+\';</script>'

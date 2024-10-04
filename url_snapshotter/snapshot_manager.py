@@ -1,70 +1,30 @@
 # url_snapshotter/snapshot_manager.py
 
 import asyncio
-
-from url_snapshotter.async_requests import fetch_all_urls
-from url_snapshotter.content_utils import clean_content, hash_content
 from url_snapshotter.db_utils import DatabaseManager
+from url_snapshotter.snapshot_fetcher import fetch_and_clean_urls
 from url_snapshotter.logger_utils import setup_logger
+
+logger = setup_logger()
 
 
 class SnapshotManager:
     def __init__(self, db_manager: DatabaseManager):
-        self.logger = setup_logger()
         self.db_manager = db_manager
-        self.debug = False
-
-    async def fetch_and_clean_urls(
-        self, urls: list[str], concurrent: int
-    ) -> list[dict[str, any]]:
-        """Fetch URLs asynchronously and clean their content."""
-        url_data = []
-        self.logger.info("Starting to fetch and clean URLs")
-
-        try:
-            urls_content = await fetch_all_urls(urls, concurrent)
-        except Exception as e:
-            self.logger.error(f"An error occurred while fetching URLs: {e}")
-            return []
-
-        for url, http_code, content in urls_content:
-            # Check if content is valid
-            if content is not None:
-                cleaned_content = clean_content(content, url)
-                content_hash = hash_content(cleaned_content)
-                url_data.append(
-                    {
-                        "url": url,
-                        "http_code": http_code,
-                        "content_hash": content_hash,
-                        "full_content": cleaned_content,
-                    }
-                )
-                self.logger.info(f"Processed URL: {url} with HTTP code {http_code}")
-            else:
-                url_data.append(
-                    {
-                        "url": url,
-                        "http_code": http_code,
-                        "content_hash": "",
-                        "full_content": "",
-                    }
-                )
-                self.logger.info(
-                    f"Processed URL: {url} with HTTP code {http_code}, no content."
-                )
-        return url_data
 
     def create_snapshot(self, urls: list[str], name: str, concurrent: int):
         """Create a snapshot of URLs and save it to the database."""
-        self.logger.info(f"Creating snapshot with name: {name}")
+        logger.info(f"Creating snapshot with name: {name}")
 
         try:
-            url_data = asyncio.run(self.fetch_and_clean_urls(urls, concurrent))
+            # Use asyncio.run to perform async fetch and clean
+            url_data = asyncio.run(fetch_and_clean_urls(urls, concurrent))
+
+            # Save the snapshot to the database
             self.db_manager.save_snapshot(name, url_data)
-            self.logger.info("Snapshot creation completed.")
+            logger.info("Snapshot creation completed.")
         except Exception as e:
-            self.logger.error(f"An error occurred while creating snapshot: {e}")
+            logger.error(f"An error occurred while creating snapshot: {e}")
 
     def compare_snapshots(
         self, snapshot1_id: int, snapshot2_id: int
@@ -74,7 +34,7 @@ class SnapshotManager:
             snapshot1_data = self.db_manager.get_snapshot_data(snapshot1_id)
             snapshot2_data = self.db_manager.get_snapshot_data(snapshot2_id)
         except Exception as e:
-            self.logger.error(f"Error retrieving snapshots: {e}")
+            logger.error(f"Error retrieving snapshots: {e}")
             return []
 
         differences = self._find_differences(snapshot1_data, snapshot2_data)
@@ -92,8 +52,6 @@ class SnapshotManager:
             print(
                 f"[bold red]🚨 An error occurred while viewing the snapshot: {e}[/bold red]"
             )
-            if self.debug:
-                self.logger.exception("Exception in view_snapshot")
             return []
 
     def _find_differences(
@@ -131,6 +89,6 @@ class SnapshotManager:
                         "snapshot2_full_content": content2,
                     }
                 )
-                self.logger.info(f"URL: {url} has changed.")
+                logger.info(f"URL: {url} has changed.")
 
         return differences

@@ -2,19 +2,18 @@
 
 import hashlib
 import re
-
 from url_snapshotter.logger_utils import setup_logger
 from url_snapshotter.patterns import get_patterns
 
 logger = setup_logger()
 
 
-def hash_content(content):
+def hash_content(content: str) -> str:
     """Create an SHA-256 hash of the content."""
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
-def clean_content(content, url):
+def clean_content(content: str, url: str) -> str:
     """Remove specific elements from content that can cause false positives in diffs."""
     patterns = get_patterns()
 

@@ -1,18 +1,17 @@
 # url_snapshotter/db_utils.py
 
-import os
-from datetime import datetime
-
 from sqlalchemy import (
+    create_engine,
     Column,
-    DateTime,
-    ForeignKey,
     Integer,
     String,
     Text,
-    create_engine,
+    DateTime,
+    ForeignKey,
 )
-from sqlalchemy.orm import declarative_base, relationship, scoped_session, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship, scoped_session
+import os
+from datetime import datetime
 
 from url_snapshotter.logger_utils import setup_logger
 
@@ -87,6 +86,7 @@ class DatabaseManager:
             session.add(snapshot)
             session.flush()  # Flush to assign snapshot_id without committing
 
+            # Add URL snapshots
             for url_entry in urls:
                 url_snapshot = URLSnapshot(
                     snapshot_id=snapshot.snapshot_id,

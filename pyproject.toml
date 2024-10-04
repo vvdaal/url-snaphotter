@@ -6,6 +6,9 @@ authors = ["Vince van Daal <vince-os@vandaal.io>"]
 license = "MIT"
 readme = "README.md"
 
+[tool.poetry.scripts]
+url-snapshotter = "url_snapshotter.cli:cli"
+
 [tool.poetry.dependencies]
 python = "^3.12"
 aiohttp = "3.10.8"

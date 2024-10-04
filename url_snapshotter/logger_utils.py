@@ -3,7 +3,8 @@
 import logging
 
 
-def setup_logger(debug=False):
+def setup_logger(debug: bool = False) -> logging.Logger:
+    """Set up a logger for the application."""
     level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         level=level,
