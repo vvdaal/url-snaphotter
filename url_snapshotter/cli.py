@@ -208,4 +208,5 @@ def list_snapshots():
 
 
 if __name__ == "__main__":
+    logger.debug("Starting URL Snapshotter CLI...")
     cli()

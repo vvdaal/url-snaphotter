@@ -4,32 +4,64 @@ from InquirerPy import inquirer
 from rich.console import Console
 from rich.prompt import Prompt
 from url_snapshotter.db_utils import DatabaseManager
+from time import sleep
+
 
 console = Console()
 db_manager = DatabaseManager()
 
 
-def prompt_for_file() -> str | None:
+def load_urls_from_file(file_path: str) -> list[str]:
     """
-    Prompt the user to enter a file path for URLs.
-
-    This function uses the `Prompt.ask` method to request a file path from the user.
-    If the user provides an empty input, a message is printed to the console, and the function returns None.
-    The function also handles `KeyboardInterrupt` and `EOFError` exceptions, returning None in these cases.
-
+    Load URLs from a specified file.
+    
+    Args:
+        file_path (str): The path to the file containing URLs.
+    
     Returns:
-        str | None: The file path entered by the user, or None if no input is provided or an exception occurs.
+        list[str]: A list of URLs read from the file.
+    
+    Raises:
+        ValueError: If the file is empty or not found.
     """
-    try:
-        file_path = Prompt.ask(
-            "[bold yellow]📂 Enter the path to a file containing URLs[/bold yellow]"
-        ).strip()
-        if not file_path:
-            console.print("[bold red]🚨 No file path provided.[/bold red]")
+    with open(file_path, "r", encoding="utf-8") as f:
+        urls = [line.strip() for line in f if line.strip()]
+    if not urls:
+        raise ValueError(f"The file '{file_path}' is empty.")
+    return urls
+
+
+def prompt_for_file() -> list[str] | None:
+    """
+    Prompt the user to enter a file path for URLs and attempt to load URLs from the file.
+    Continues to prompt until a valid file is provided or the user types 'exit'.
+    
+    Returns:
+        list[str] | None: The list of URLs loaded from the file, or None if the user chooses to exit.
+    """
+    while True:
+        try:
+            file_path = Prompt.ask(
+                "[bold yellow]📂 Enter the path to a file containing URLs (or type 'exit' to return to the main menu)[/bold yellow]"
+            ).strip()
+            
+            if not file_path:
+                console.print("[bold red]🚨 No file path provided. Please try again.[/bold red]")
+            elif file_path.lower() == "exit":
+                console.print("[bold yellow]👋 Returning to the main menu...[/bold yellow]")
+                return None
+            else:
+                # Attempt to load URLs from the file
+                urls = load_urls_from_file(file_path)
+                return urls
+        except FileNotFoundError:
+            console.print(f"[bold red]🚨 File '{file_path}' not found.[/bold red]")
+        except ValueError as ve:
+            console.print(f"[bold red]🚨 {ve}[/bold red]")
+        except Exception as e:
+            console.print(f"[bold red]🚨 An unexpected error occurred: {e}[/bold red]")
+            console.input("[bold cyan]Press Enter to return to the main menu...[/bold cyan]", markup=True)
             return None
-        return file_path
-    except (KeyboardInterrupt, EOFError):
-        return None
 
 
 def prompt_for_snapshot_name() -> str | None:
@@ -45,10 +77,11 @@ def prompt_for_snapshot_name() -> str | None:
     """
     try:
         name = Prompt.ask(
-            "[bold yellow]📝 Enter a name for the snapshot[/bold yellow]"
+            "[bold yellow]📝 Enter a name for the snapshot (Can contain any character)[/bold yellow]"
         ).strip()
         if not name:
             console.print("[bold red]🚨 No snapshot name provided.[/bold red]")
+
             return None
         return name
     except (KeyboardInterrupt, EOFError):

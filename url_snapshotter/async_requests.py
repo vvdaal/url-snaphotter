@@ -56,26 +56,25 @@ async def fetch_url(
 async def fetch_all_urls(
     urls: list[str], concurrent: int, max_retries: int = 3
 ) -> list[dict]:
-    """
-    Fetch all URLs asynchronously.
-
-    Args:
-        urls (list[str]): A list of URLs to fetch.
-        concurrent (int): The maximum number of concurrent connections.
-        max_retries (int, optional): The maximum number of retries for each URL. Defaults to 3.
-
-    Returns:
-        list[dict]: A list of dictionaries containing the results of the fetched URLs.
-    """
-
     results = []
     connector = aiohttp.TCPConnector(limit=concurrent)
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = [fetch_url(session, url, max_retries) for url in urls]
-        for task in asyncio.as_completed(tasks):
-            result = await task
-            if result.get("content") is not None:
-                results.append(result)
-            else:
-                logger.warning(f"Skipping URL due to repeated failure: {result['url']}")
+
+        # Use asyncio.gather to collect all results
+        completed_results = await asyncio.gather(*tasks)
+
+        for result in completed_results:
+            await process_task_result(result, results)
+
     return results
+
+
+async def process_task_result(task_result, results):
+    result = await task_result
+    content = result.get("content")
+
+    if content is not None:
+        results.append(result)
+    else:
+        logger.warning(f"Skipping URL due to repeated failure: {result['url']}")

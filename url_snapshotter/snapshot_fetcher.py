@@ -19,7 +19,7 @@ async def fetch_and_clean_urls(
         concurrent (int): The number of concurrent fetch operations.
 
     Returns:
-        list[dict[str, any]]: A list of dictionaries containing the URL, HTTP code, 
+        list[dict[str, any]]: A list of dictionaries containing the URL, HTTP code,
         content hash, and cleaned full content.
 
     Raises:
