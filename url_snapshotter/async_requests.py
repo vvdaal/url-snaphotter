@@ -11,7 +11,24 @@ logger = setup_logger()
 async def fetch_url(
     session: aiohttp.ClientSession, url: str, max_retries: int = 3
 ) -> dict:
-    """Fetch a URL asynchronously with retry logic."""
+    """
+    Fetch a URL asynchronously with retry logic.
+
+    Args:
+        session (aiohttp.ClientSession): The aiohttp client session to use for making the request.
+        url (str): The URL to fetch.
+        max_retries (int, optional): The maximum number of retries in case of failure. Defaults to 3.
+
+    Returns:
+        dict: A dictionary containing the URL, HTTP status code, and content of the response.
+              If the request fails after the maximum number of retries, the HTTP status code and content will be None.
+
+    Raises:
+        ClientError: If there is a client error during the request.
+        asyncio.TimeoutError: If the request times out.
+        Exception: For any other unexpected errors.
+    """
+
     logger.debug(f"Fetching URL: {url}")
     retries = 0
 
@@ -39,7 +56,18 @@ async def fetch_url(
 async def fetch_all_urls(
     urls: list[str], concurrent: int, max_retries: int = 3
 ) -> list[dict]:
-    """Fetch all URLs asynchronously."""
+    """
+    Fetch all URLs asynchronously.
+
+    Args:
+        urls (list[str]): A list of URLs to fetch.
+        concurrent (int): The maximum number of concurrent connections.
+        max_retries (int, optional): The maximum number of retries for each URL. Defaults to 3.
+
+    Returns:
+        list[dict]: A list of dictionaries containing the results of the fetched URLs.
+    """
+
     results = []
     connector = aiohttp.TCPConnector(limit=concurrent)
     async with aiohttp.ClientSession(connector=connector) as session:

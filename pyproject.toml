@@ -6,6 +6,10 @@ authors = ["Vince van Daal <vince-os@vandaal.io>"]
 license = "MIT"
 readme = "README.md"
 
+packages = [
+    { include = "url_snapshotter" }
+]
+
 [tool.poetry.scripts]
 url-snapshotter = "url_snapshotter.cli:cli"
 

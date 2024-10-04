@@ -11,7 +11,21 @@ logger = setup_logger()
 async def fetch_and_clean_urls(
     urls: list[str], concurrent: int
 ) -> list[dict[str, any]]:
-    """Fetch URLs asynchronously and clean their content."""
+    """
+    Fetch URLs asynchronously and clean their content.
+
+    Args:
+        urls (list[str]): A list of URLs to fetch.
+        concurrent (int): The number of concurrent fetch operations.
+
+    Returns:
+        list[dict[str, any]]: A list of dictionaries containing the URL, HTTP code, 
+        content hash, and cleaned full content.
+
+    Raises:
+        Exception: If an error occurs while fetching URLs, it logs the error and returns an empty list.
+    """
+
     url_data = []
     logger.info("Starting to fetch and clean URLs")
 

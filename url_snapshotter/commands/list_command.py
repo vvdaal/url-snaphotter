@@ -11,7 +11,18 @@ snapshot_manager = SnapshotManager(db_manager)
 
 
 def handle_list_snapshots():
-    """List all available snapshots."""
+    """
+    List all available snapshots.
+
+    This function retrieves all snapshots from the database using the db_manager,
+    displays them using the display_snapshots_list function, and handles any
+    exceptions that may occur during this process. After displaying the snapshots,
+    it prompts the user to press Enter to return to the main menu.
+
+    Raises:
+        Exception: If an error occurs while retrieving or displaying snapshots.
+    """
+
     try:
         snapshots = db_manager.get_snapshots()
         display_snapshots_list(snapshots)

@@ -10,7 +10,16 @@ db_manager = DatabaseManager()
 
 
 def prompt_for_file() -> str | None:
-    """Prompt the user to enter a file path for URLs."""
+    """
+    Prompt the user to enter a file path for URLs.
+
+    This function uses the `Prompt.ask` method to request a file path from the user.
+    If the user provides an empty input, a message is printed to the console, and the function returns None.
+    The function also handles `KeyboardInterrupt` and `EOFError` exceptions, returning None in these cases.
+
+    Returns:
+        str | None: The file path entered by the user, or None if no input is provided or an exception occurs.
+    """
     try:
         file_path = Prompt.ask(
             "[bold yellow]📂 Enter the path to a file containing URLs[/bold yellow]"
@@ -24,7 +33,16 @@ def prompt_for_file() -> str | None:
 
 
 def prompt_for_snapshot_name() -> str | None:
-    """Prompt the user to enter a snapshot name."""
+    """
+    Prompt the user to enter a snapshot name.
+
+    This function uses the `Prompt.ask` method to request a name for the snapshot from the user.
+    If the user provides an empty input or if an interruption occurs (e.g., KeyboardInterrupt or EOFError),
+    the function will return None.
+
+    Returns:
+        str | None: The name entered by the user, or None if no name was provided or an interruption occurred.
+    """
     try:
         name = Prompt.ask(
             "[bold yellow]📝 Enter a name for the snapshot[/bold yellow]"
@@ -38,7 +56,14 @@ def prompt_for_snapshot_name() -> str | None:
 
 
 def prompt_for_snapshots() -> tuple[int | None, int | None]:
-    """Prompt the user to select snapshots for comparison."""
+    """
+    Prompt the user to select two snapshots for comparison from a list of available snapshots.
+
+    Returns:
+        tuple[int | None, int | None]: A tuple containing the IDs of the two selected snapshots.
+        If the user chooses to return to the main menu or if there are not enough snapshots,
+        the function returns (None, None).
+    """
     snapshots = db_manager.get_snapshots()
     if len(snapshots) < 2:
         console.print(
@@ -97,7 +122,13 @@ def prompt_for_snapshots() -> tuple[int | None, int | None]:
 
 
 def prompt_for_snapshot_id() -> int | None:
-    """Prompt the user to select a snapshot ID."""
+    """
+    Prompt the user to select a snapshot ID from a list of available snapshots.
+
+    Returns:
+        int | None: The selected snapshot ID, or None if no snapshots are available
+        or the user chooses to return to the main menu.
+    """
     snapshots = db_manager.get_snapshots()
     if not snapshots:
         console.print("[bold red]🚨 No snapshots available.[/bold red]")

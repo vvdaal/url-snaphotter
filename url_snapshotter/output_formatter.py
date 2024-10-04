@@ -8,7 +8,17 @@ console = Console()
 
 
 def display_snapshots_list(snapshots: list):
-    """Display a list of all snapshots."""
+    """
+    Display a list of all snapshots in a formatted table.
+
+    Args:
+        snapshots (list): A list of snapshot objects. Each snapshot object is expected to have
+                          the attributes 'snapshot_id', 'name', and 'created_at'.
+
+    Returns:
+        None: This function prints the formatted table to the console.
+    """
+
     if not snapshots:
         console.print("[bold yellow]⚠️ No snapshots found.[/bold yellow]")
         return
@@ -28,7 +38,29 @@ def display_snapshots_list(snapshots: list):
 
 
 def display_differences(differences: list[dict[str, any]]):
-    """Display content differences between snapshots."""
+    """
+    Display content differences between snapshots.
+
+    Args:
+        differences (list[dict[str, any]]): A list of dictionaries containing
+        the differences between snapshots. Each dictionary should have the
+        following keys:
+            - "url": The URL of the snapshot.
+            - "snapshot1_http_code": HTTP status code of the first snapshot.
+            - "snapshot2_http_code": HTTP status code of the second snapshot.
+            - "snapshot1_full_content": Full content of the first snapshot.
+            - "snapshot2_full_content": Full content of the second snapshot.
+
+    Behavior:
+        - If no differences are found, a message indicating no differences
+          will be printed.
+        - For each difference, the URL and HTTP status codes of both snapshots
+          will be printed.
+        - The user will be prompted to see the content differences for each URL.
+        - If the user opts to see the differences, a unified diff of the
+          content will be displayed, with additions in green and deletions in red.
+    """
+
     if not differences:
         console.print(
             "[bold green]✅ No differences found between the snapshots.[/bold green]"
@@ -77,7 +109,20 @@ def display_differences(differences: list[dict[str, any]]):
 
 
 def display_snapshot_details(snapshot_data: list[dict[str, any]]):
-    """Display the details of a specific snapshot."""
+    """
+    Display the details of a specific snapshot in a formatted table.
+
+    Args:
+        snapshot_data (list[dict[str, any]]): A list of dictionaries containing snapshot details.
+            Each dictionary should have the following keys:
+            - "url" (str): The URL of the snapshot.
+            - "http_code" (int): The HTTP status code of the snapshot.
+            - "content_hash" (str): The hash of the snapshot content.
+
+    Returns:
+        None
+    """
+
     if not snapshot_data:
         console.print("[bold yellow]⚠️ No data found for this snapshot.[/bold yellow]")
         return

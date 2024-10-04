@@ -13,7 +13,18 @@ snapshot_manager = SnapshotManager(db_manager)
 
 
 def handle_create(file: str | None, name: str | None, concurrent: int):
-    """Handle the creation of a new snapshot."""
+    """
+    Handle the creation of a new snapshot.
+
+    Parameters:
+    file (str | None): The path to the file containing URLs. If None, the user will be prompted to provide a file.
+    name (str | None): The name of the snapshot. If None, the user will be prompted to provide a name.
+    concurrent (int): The number of concurrent operations to perform during snapshot creation.
+
+    Returns:
+    None
+    """
+
     try:
         file_path = file or prompt_for_file()
         if not file_path:

@@ -9,11 +9,52 @@ logger = setup_logger()
 
 
 class SnapshotManager:
+    """
+    SnapshotManager is responsible for managing URL snapshots, including creating, comparing, and viewing snapshots.
+
+    Args:
+        db_manager (DatabaseManager): An instance of DatabaseManager to handle database operations.
+
+    Methods:
+        __init__(db_manager: DatabaseManager):
+            Initializes the SnapshotManager with a DatabaseManager instance.
+
+        create_snapshot(urls: list[str], name: str, concurrent: int):
+            Creates a snapshot of the provided URLs and saves it to the database.
+
+        compare_snapshots(snapshot1_id: int, snapshot2_id: int) -> list[dict[str, any]]:
+            Compares two snapshots by their IDs and returns the differences.
+
+        view_snapshot(snapshot_id: int) -> list[dict[str, any]]:
+            Retrieves the details of a specific snapshot by its ID.
+
+        _find_differences(snapshot1_data: list[dict[str, any]], snapshot2_data: list[dict[str, any]]) -> list[dict[str, any]]:
+            Identifies differences between two snapshots.
+    """
+
     def __init__(self, db_manager: DatabaseManager):
+        """
+        Initializes the SnapshotManager with a DatabaseManager instance.
+
+        Args:
+            db_manager (DatabaseManager): An instance of DatabaseManager to handle database operations.
+        """
+
         self.db_manager = db_manager
 
     def create_snapshot(self, urls: list[str], name: str, concurrent: int):
-        """Create a snapshot of URLs and save it to the database."""
+        """
+        Create a snapshot of the provided URLs and save it to the database.
+
+        Args:
+            urls (list[str]): A list of URLs to be included in the snapshot.
+            name (str): The name to assign to the snapshot.
+            concurrent (int): The number of concurrent requests to make while fetching URLs.
+
+        Raises:
+            Exception: If an error occurs during the snapshot creation process.
+        """
+
         logger.info(f"Creating snapshot with name: {name}")
 
         try:
@@ -29,7 +70,19 @@ class SnapshotManager:
     def compare_snapshots(
         self, snapshot1_id: int, snapshot2_id: int
     ) -> list[dict[str, any]]:
-        """Compare two snapshots and return differences."""
+        """
+        Compare two snapshots and return the differences.
+
+        Args:
+            snapshot1_id (int): The ID of the first snapshot.
+            snapshot2_id (int): The ID of the second snapshot.
+
+        Returns:
+            list[dict[str, any]]: A list of dictionaries representing the differences
+                                  between the two snapshots. Each dictionary contains
+                                  the details of a difference.
+        """
+
         try:
             snapshot1_data = self.db_manager.get_snapshot_data(snapshot1_id)
             snapshot2_data = self.db_manager.get_snapshot_data(snapshot2_id)
@@ -41,7 +94,20 @@ class SnapshotManager:
         return differences
 
     def view_snapshot(self, snapshot_id: int) -> list[dict[str, any]]:
-        """Retrieve the details of a specific snapshot."""
+        """
+        Retrieve the details of a specific snapshot.
+
+        Args:
+            snapshot_id (int): The unique identifier of the snapshot to retrieve.
+
+        Returns:
+            list[dict[str, any]]: A list of dictionaries containing the snapshot details.
+                                  Returns an empty list if no data is found or an error occurs.
+
+        Raises:
+            Exception: If an error occurs while retrieving the snapshot data.
+        """
+
         try:
             snapshot_data = self.db_manager.get_snapshot_data(snapshot_id)
             if not snapshot_data:
@@ -57,7 +123,21 @@ class SnapshotManager:
     def _find_differences(
         self, snapshot1_data: list[dict[str, any]], snapshot2_data: list[dict[str, any]]
     ) -> list[dict[str, any]]:
-        """Identify differences between two snapshots."""
+        """
+        Compare two snapshots and find differences between them.
+
+        This method compares two lists of dictionaries, each representing a snapshot of URLs and their associated data.
+        It identifies differences in HTTP status codes and content hashes between the two snapshots.
+
+        Args:
+            snapshot1_data (list[dict[str, any]]): The first snapshot data, where each dictionary contains URL data.
+            snapshot2_data (list[dict[str, any]]): The second snapshot data, where each dictionary contains URL data.
+
+        Returns:
+            list[dict[str, any]]: A list of dictionaries, each representing a URL with differences between the two snapshots.
+            Each dictionary contains the URL, HTTP codes, content hashes, and full content from both snapshots.
+        """
+
         differences = []
 
         # Convert list of dicts to dict with URL as key

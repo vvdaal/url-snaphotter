@@ -13,5 +13,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-# Command to run the application
-CMD ["python", "cli.py"]
+# Command to run the application using the CLI entry point
+CMD ["python", "-m", "url_snapshotter.cli"]

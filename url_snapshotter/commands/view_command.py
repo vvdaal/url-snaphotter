@@ -12,7 +12,16 @@ snapshot_manager = SnapshotManager(db_manager)
 
 
 def handle_view(snapshot_id: int | None = None):
-    """Handle viewing the details of a snapshot."""
+    """
+    Handle viewing the details of a snapshot.
+
+    Parameters:
+    snapshot_id (int | None): The ID of the snapshot to view. If None, the user will be prompted to enter a snapshot ID.
+
+    Returns:
+    None
+    """
+
     try:
         if snapshot_id is None:
             snapshot_id = prompt_for_snapshot_id()

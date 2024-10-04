@@ -12,7 +12,19 @@ snapshot_manager = SnapshotManager(db_manager)
 
 
 def handle_compare(snapshot1_id: int | None = None, snapshot2_id: int | None = None):
-    """Handle the comparison of two snapshots."""
+    """
+    Handle the comparison of two snapshots.
+
+    This function compares two snapshots identified by their IDs. If the IDs are not provided,
+    it prompts the user to input them. The differences between the snapshots are then displayed.
+
+    Args:
+        snapshot1_id (int | None): The ID of the first snapshot. Defaults to None.
+        snapshot2_id (int | None): The ID of the second snapshot. Defaults to None.
+
+    Returns:
+        None
+    """
     try:
         if snapshot1_id is None or snapshot2_id is None:
             snapshot1_id, snapshot2_id = prompt_for_snapshots()
