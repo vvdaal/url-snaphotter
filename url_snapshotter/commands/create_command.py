@@ -58,9 +58,7 @@ def handle_create(file: str | None, name: str | None, concurrent: int):
             start_time = time.time()
 
             # Call create_snapshot method
-            snapshot_manager.create_snapshot(
-                urls, name, concurrent
-            )
+            snapshot_manager.create_snapshot(urls, name, concurrent)
 
             # Calculate elapsed time
             elapsed_time = time.time() - start_time

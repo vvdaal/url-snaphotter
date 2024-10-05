@@ -3,9 +3,10 @@
 # This module provides the functionality to manage URL snapshots, including creating, comparing, and viewing snapshots.
 
 import asyncio
+import structlog
 from url_snapshotter.db_utils import DatabaseManager
 from url_snapshotter.snapshot_fetcher import fetch_and_clean_urls
-import structlog
+from rich.markup import escape
 
 logger = structlog.get_logger()
 
@@ -156,8 +157,8 @@ class SnapshotManager:
             code2 = data2.get("http_code", "N/A")
             content_hash1 = data1.get("content_hash", "")
             content_hash2 = data2.get("content_hash", "")
-            content1 = data1.get("full_content", "")
-            content2 = data2.get("full_content", "")
+            content1 = escape(data1.get("full_content", ""))
+            content2 = escape(data2.get("full_content", ""))
 
             if code1 != code2 or content_hash1 != content_hash2:
                 differences.append(
