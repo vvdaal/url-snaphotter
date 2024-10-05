@@ -13,7 +13,7 @@ def configure_structlog(debug: bool = False):
 
     Args:
       debug (bool): If True, sets the log level to DEBUG for all handlers.
-                    If False, sets the log level to INFO for file handler and ERROR for console.
+                    If False, sets the log level to INFO for file handler and CRITICAL for console.
     """
 
     # Define processors for formatting log messages
@@ -50,9 +50,22 @@ def configure_structlog(debug: bool = False):
         ],
     )
 
-    # Adjust the log level for console and file handlers individually
+    # Retrieve console and file handlers
     console_handler = logging.getLogger().handlers[0]
-    console_handler.setLevel(logging.DEBUG if debug else logging.ERROR)
-
     file_handler = logging.getLogger().handlers[1]
-    file_handler.setLevel(logging.DEBUG if debug else logging.INFO)
+
+    if debug:
+        # If debug is enabled, log everything to both console and file
+        console_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging.DEBUG)
+    else:
+        # If debug is disabled:
+        # Log only CRITICAL messages to console
+        console_handler.setLevel(logging.CRITICAL)
+        # Log everything from INFO and above to file
+        file_handler.setLevel(logging.INFO)
+
+    # Set formatter for console and file handlers
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)

@@ -69,11 +69,10 @@ def handle_create(file: str | None, name: str | None, concurrent: int):
                 time.sleep(min_spinner_time - elapsed_time)
 
             spinner.ok("✔")
+            console.print("[bold green]✅ Snapshot created successfully![/bold green]")
             console.input(
                 "[bold cyan]Press Enter to return to the main menu...[/bold cyan]"
             )
-
-        console.print("[bold green]✅ Snapshot created successfully![/bold green]")
     except Exception as e:
         console.print(f"[bold red]🚨 An unexpected error occurred: {e}[/bold red]")
         console.input(
