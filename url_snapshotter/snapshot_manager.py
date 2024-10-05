@@ -1,11 +1,12 @@
 # url_snapshotter/snapshot_manager.py
 
-# This module provides the functionality to manage URL snapshots, including creating, comparing, and viewing snapshots.
+# This module provides the functionality to manage URL snapshots, including creating, fetching, comparing, and viewing snapshots.
 
 import asyncio
 import structlog
 from url_snapshotter.db_utils import DatabaseManager
-from url_snapshotter.snapshot_fetcher import fetch_and_clean_urls
+from url_snapshotter.async_requests import fetch_all_urls
+from url_snapshotter.content_utils import clean_content, hash_content
 from rich.markup import escape
 
 logger = structlog.get_logger()
@@ -13,7 +14,7 @@ logger = structlog.get_logger()
 
 class SnapshotManager:
     """
-    SnapshotManager is responsible for managing URL snapshots, including creating, comparing, and viewing snapshots.
+    SnapshotManager is responsible for managing URL snapshots, including creating, fetching, comparing, and viewing snapshots.
 
     Args:
         db_manager (DatabaseManager): An instance of DatabaseManager to handle database operations.
@@ -42,7 +43,6 @@ class SnapshotManager:
         Args:
             db_manager (DatabaseManager): An instance of DatabaseManager to handle database operations.
         """
-
         self.db_manager = db_manager
 
     def create_snapshot(self, urls: list[str], name: str, concurrent: int):
@@ -57,18 +57,94 @@ class SnapshotManager:
         Raises:
             Exception: If an error occurs during the snapshot creation process.
         """
-
         logger.info(f"Creating snapshot with name: {name}")
 
         try:
             # Use asyncio.run to perform async fetch and clean
-            url_data = asyncio.run(fetch_and_clean_urls(urls, concurrent))
+            url_data = asyncio.run(self.fetch_and_clean_urls(urls, concurrent))
 
             # Save the snapshot to the database
             self.db_manager.save_snapshot(name, url_data)
             logger.info("Snapshot creation completed.")
         except Exception as e:
             logger.error(f"An error occurred while creating snapshot: {e}")
+
+    async def fetch_and_clean_urls(
+        self, urls: list[str], concurrent: int
+    ) -> list[dict[str, any]]:
+        """
+        Fetch URLs asynchronously and clean their content.
+
+        Args:
+            urls (list[str]): A list of URLs to fetch.
+            concurrent (int): The number of concurrent fetch operations.
+
+        Returns:
+            list[dict[str, any]]: A list of dictionaries containing the URL, HTTP code,
+            content hash, and cleaned full content.
+
+        Raises:
+            Exception: If an error occurs while fetching URLs, it logs the error and returns an empty list.
+        """
+        url_data = []
+        logger.info("Starting to fetch and clean URLs")
+
+        try:
+            # Fetch all URLs concurrently
+            urls_content = await fetch_all_urls(urls, concurrent)
+        except Exception as e:
+            logger.error("An error occurred while fetching URLs", error=str(e))
+            return []
+
+        # Process each URL result individually
+        for result in urls_content:
+            url = result.get("url", "")
+            http_code = result.get("status") or result.get("http_code", "Unknown")
+            content = result.get("content", "")
+
+            try:
+                if content:
+                    cleaned_content = clean_content(content, url)
+                    content_hash = hash_content(cleaned_content)
+                    url_data.append(
+                        {
+                            "url": url,
+                            "http_code": http_code,
+                            "content_hash": content_hash,
+                            "full_content": cleaned_content,
+                        }
+                    )
+                    logger.info(f"Processed URL: {url} with HTTP code {http_code}")
+                else:
+                    # Handle cases where content is missing or empty
+                    url_data.append(
+                        {
+                            "url": url,
+                            "http_code": http_code,
+                            "content_hash": "",
+                            "full_content": "",
+                        }
+                    )
+                    logger.warning(f"No content for URL: {url} with HTTP code {http_code}")
+
+            except Exception as process_error:
+                # Log and continue if processing fails for a specific URL
+                logger.error(
+                    f"Error processing URL: {url}",
+                    error=str(process_error),
+                    http_code=http_code,
+                )
+                url_data.append(
+                    {
+                        "url": url,
+                        "http_code": http_code,
+                        "content_hash": "",
+                        "full_content": "",
+                    }
+                )
+
+        logger.info(f"Completed processing {len(url_data)} URLs")
+        return url_data
 
     def compare_snapshots(
         self, snapshot1_id: int, snapshot2_id: int
@@ -85,7 +161,6 @@ class SnapshotManager:
                                   between the two snapshots. Each dictionary contains
                                   the details of a difference.
         """
-
         try:
             snapshot1_data = self.db_manager.get_snapshot_data(snapshot1_id)
             snapshot2_data = self.db_manager.get_snapshot_data(snapshot2_id)
@@ -110,7 +185,6 @@ class SnapshotManager:
         Raises:
             Exception: If an error occurs while retrieving the snapshot data.
         """
-
         try:
             snapshot_data = self.db_manager.get_snapshot_data(snapshot_id)
             if not snapshot_data:
@@ -140,7 +214,6 @@ class SnapshotManager:
             list[dict[str, any]]: A list of dictionaries, each representing a URL with differences between the two snapshots.
             Each dictionary contains the URL, HTTP codes, content hashes, and full content from both snapshots.
         """
-
         differences = []
 
         # Convert list of dicts to dict with URL as key
