@@ -62,11 +62,7 @@ We love pull requests! If you'd like to make a code change:
 
 ## Coding Standards
 
-- **Python Version**: We use Python 3.12+.
-- **PEP 8**: Adhere to PEP 8 standards. Use `black` for formatting your code.
-  - **Docstrings**: When writing a docstring, make sure there is a blank newline after it.
-- **Type Hints**: Use type hints for better readability. Use native Python 3.12 type annotations instead of importing from `typing`.
-- **Testing**: Write tests for your changes. We use `pytest` for testing. Make sure all tests pass before submitting your pull request.
-- **Logging**: Use `setup_logger()` from `url_snapshotter.logger_utils` for logging, ensuring consistent and useful log messages.
+For more detailed coding standards and practices, refer to the [CODE_STYLE.md](CODE_STYLE.md) file in the repository.
+
 
 We appreciate any contribution to `url-snapshotter`!

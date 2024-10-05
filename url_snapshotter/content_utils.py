@@ -1,11 +1,13 @@
 # url_snapshotter/content_utils.py
 
+# This module provides the functionality to hash and clean content.
+
 import hashlib
 import re
-from url_snapshotter.logger_utils import setup_logger
+import structlog
 from url_snapshotter.patterns import get_patterns
 
-logger = setup_logger()
+logger = structlog.get_logger()
 
 
 def hash_content(content: str) -> str:

@@ -1,5 +1,7 @@
 # url_snapshotter/output_formatter.py
 
+# This module provides the functionality to format and display output to the console.
+
 from rich.console import Console
 from rich.table import Table
 import difflib

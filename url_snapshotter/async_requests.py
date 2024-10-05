@@ -1,30 +1,32 @@
 # url_snapshotter/async_requests.py
 
+# This module provides the functionality to fetch URLs asynchronously with retry logic.
+
 import aiohttp
 import asyncio
-from url_snapshotter.logger_utils import setup_logger
+import structlog
 from aiohttp import ClientError
 
-logger = setup_logger()
+logger = structlog.get_logger()
 
 
 async def fetch_url(
     session: aiohttp.ClientSession, url: str, max_retries: int = 3
 ) -> dict:
     """
-    Fetch a URL asynchronously with retry logic.
+    Fetches the content of a URL asynchronously with retry logic.
 
     Args:
-        session (aiohttp.ClientSession): The aiohttp client session to use for making the request.
+        session (aiohttp.ClientSession): The aiohttp session to use for making the request.
         url (str): The URL to fetch.
         max_retries (int, optional): The maximum number of retries in case of failure. Defaults to 3.
 
     Returns:
-        dict: A dictionary containing the URL, HTTP status code, and content of the response.
-              If the request fails after the maximum number of retries, the HTTP status code and content will be None.
+        dict: A dictionary containing the URL, HTTP status code, and content. If an error occurs,
+              the HTTP status code and content will be None.
 
     Raises:
-        ClientError: If there is a client error during the request.
+        ClientError: If there is an error with the client request.
         asyncio.TimeoutError: If the request times out.
         Exception: For any other unexpected errors.
     """
@@ -56,25 +58,49 @@ async def fetch_url(
 async def fetch_all_urls(
     urls: list[str], concurrent: int, max_retries: int = 3
 ) -> list[dict]:
+    """
+    Fetches content from a list of URLs asynchronously with a specified level of concurrency and retry attempts.
+
+    Args:
+        urls (list[str]): A list of URLs to fetch.
+        concurrent (int): The maximum number of concurrent requests.
+        max_retries (int, optional): The maximum number of retry attempts for each URL. Defaults to 3.
+
+    Returns:
+        list[dict]: A list of dictionaries containing the results of the fetch operations.
+    """
+
     results = []
     connector = aiohttp.TCPConnector(limit=concurrent)
+
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = [fetch_url(session, url, max_retries) for url in urls]
 
         # Use asyncio.gather to collect all results
-        completed_results = await asyncio.gather(*tasks)
+        completed_results = await asyncio.gather(*tasks, return_exceptions=True)
 
+        # Process each result individually
         for result in completed_results:
-            await process_task_result(result, results)
+            process_task_result(result, results)
 
     return results
 
 
-async def process_task_result(task_result, results):
-    result = await task_result
-    content = result.get("content")
+def process_task_result(task_result: dict, results: list[dict]):
+    """
+    Processes the result of a task and appends it to the results list if it contains content.
+
+    Args:
+        task_result (dict): A dictionary containing the result of a task. Expected to have a key "content".
+        results (list[dict]): A list of dictionaries where successful task results are appended.
+
+    Returns:
+        None
+    """
+
+    content = task_result.get("content")
 
     if content is not None:
-        results.append(result)
+        results.append(task_result)
     else:
-        logger.warning(f"Skipping URL due to repeated failure: {result['url']}")
+        logger.warning(f"Skipping URL due to repeated failure: {task_result['url']}")

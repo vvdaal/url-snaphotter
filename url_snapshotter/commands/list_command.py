@@ -1,5 +1,7 @@
 # url_snapshotter/commands/list_command.py
 
+# This module provides the functionality to list all available snapshots.
+
 from url_snapshotter.snapshot_manager import SnapshotManager
 from url_snapshotter.db_utils import DatabaseManager
 from url_snapshotter.output_formatter import display_snapshots_list

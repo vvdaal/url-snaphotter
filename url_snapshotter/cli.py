@@ -1,5 +1,7 @@
 # url_snapshotter/cli.py
 
+# This module provides the functionality for the command-line interface (CLI).
+
 import sys
 from signal import signal, SIGINT
 
@@ -10,12 +12,13 @@ from url_snapshotter.commands.create_command import handle_create
 from url_snapshotter.commands.compare_command import handle_compare
 from url_snapshotter.commands.view_command import handle_view
 from url_snapshotter.commands.list_command import handle_list_snapshots
-from url_snapshotter.logger_utils import setup_logger
+from url_snapshotter.logging_config import configure_structlog
 from rich.console import Console
 from rich.panel import Panel
+import logging
 
 console = Console()
-logger = setup_logger()
+logger = logging.getLogger("url_snapshotter")
 
 
 def _signal_handler(signal_received, frame):
@@ -63,11 +66,18 @@ def cli(ctx, debug):
         None
     """
 
+    # Set up signal handling
     setup_signal_handling()
+    # Set up logger
+    configure_structlog(debug)
 
-    if debug:
-        logger.setLevel("DEBUG")
+    logger.debug(
+        "Starting URL Snapshotter CLI with debug mode enabled."
+        if debug
+        else "Starting URL Snapshotter CLI."
+    )
 
+    # Display the main menu if no subcommand is provided
     if ctx.invoked_subcommand is None:
         display_main_menu()
 

@@ -1,5 +1,7 @@
 # url_snapshotter/db_utils.py
 
+# This module provides the functionality to interact with the database.
+
 from sqlalchemy import (
     create_engine,
     Column,
@@ -13,10 +15,12 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, scoped_
 import os
 from datetime import datetime
 
-from url_snapshotter.logger_utils import setup_logger
+import structlog
 
+# Base class for declarative class definitions
 Base = declarative_base()
-logger = setup_logger()
+
+logger = structlog.get_logger()
 
 
 class Snapshot(Base):
@@ -128,6 +132,9 @@ class DatabaseManager:
 
         self.use_in_memory_db = self._use_in_memory_db()
         self.db_url = self._get_db_url()
+        logger.debug(
+            f"Initializing DatabaseManager with db_url: {self.db_url}, timeout: {timeout}"
+        )
         self.engine = create_engine(
             self.db_url, connect_args={"timeout": timeout}, future=True
         )
@@ -148,7 +155,9 @@ class DatabaseManager:
             bool: True if 'USE_IN_MEMORY_DB' is set to 'true', False otherwise.
         """
 
-        return os.getenv("USE_IN_MEMORY_DB", "false").lower() == "true"
+        use_in_memory = os.getenv("USE_IN_MEMORY_DB", "false").lower() == "true"
+        logger.debug(f"USE_IN_MEMORY_DB set to {use_in_memory}")
+        return use_in_memory
 
     def _get_db_url(self) -> str:
         """
@@ -159,100 +168,126 @@ class DatabaseManager:
                  Otherwise, returns a file-based SQLite URL pointing to 'snapshots.db'.
         """
 
-        return (
+        db_url = (
             "sqlite:///:memory:" if self.use_in_memory_db else "sqlite:///snapshots.db"
         )
+        logger.debug(f"Database URL is set to {db_url}")
+        return db_url
 
     def _initialize_db(self):
         """
-        Initialize the database tables.
+        Initializes the database tables.
 
-        This method creates all tables defined in the Base metadata using the
-        engine associated with the database. It ensures that the database schema
-        is set up according to the defined models.
+        This method sets up the database schema by creating all tables defined in the
+        SQLAlchemy Base metadata. It uses the engine associated with the current instance
+        to execute the table creation commands.
         """
 
+        logger.debug("Initializing database tables.")
         Base.metadata.create_all(self.engine)
 
     def get_session(self):
         """
-        Provide a session for database operations.
+        Creates and returns a new database session.
 
         Returns:
-            sqlalchemy.orm.session.Session: A new session object for interacting with the database.
+            Session: A new database session object.
         """
 
+        logger.debug("Creating new database session.")
         return self.Session()
 
     def save_snapshot(self, name: str, urls: list[dict[str, any]]):
         """
-        Save snapshot details into the database.
+        Saves a snapshot of URLs to the database.
 
         Args:
             name (str): The name of the snapshot.
-            urls (list[dict[str, any]]): A list of dictionaries containing URL snapshot details.
-                Each dictionary should have the following keys:
-                    - url (str): The URL being snapshotted.
-                    - http_code (int): The HTTP status code of the URL.
-                    - content_hash (str): The hash of the URL content.
-                    - full_content (str): The full content of the URL.
+            urls (list[dict[str, any]]): A list of dictionaries containing URL data. Each dictionary should have the keys:
+                - "url" (str): The URL to be saved.
+                - "http_code" (optional, int): The HTTP status code of the URL.
+                - "content_hash" (str): The hash of the URL content.
+                - "full_content" (optional, str): The full content of the URL.
 
         Raises:
-            Exception: If there is an error while saving the snapshot, it will be logged and re-raised.
+            Exception: If there is an error during the database operation.
         """
 
+        logger.debug(f"Saving snapshot '{name}' with {len(urls)} URLs.")
         session = self.get_session()
         try:
             snapshot = Snapshot(name=name.strip(), created_at=datetime.utcnow())
             session.add(snapshot)
             session.flush()  # Flush to assign snapshot_id without committing
+            logger.debug(
+                f"Assigned snapshot_id: {snapshot.snapshot_id} to snapshot '{name}'"
+            )
 
             # Add URL snapshots
             for url_entry in urls:
+                try:
+                    url = url_entry["url"]
+                    http_code = url_entry.get("http_code")
+                    content_hash = url_entry["content_hash"]
+                    full_content = url_entry.get("full_content", "")
+                except KeyError as ke:
+                    logger.error(f"Missing key {ke} in url_entry: {url_entry}")
+                    continue
+
                 url_snapshot = URLSnapshot(
                     snapshot_id=snapshot.snapshot_id,
-                    url=url_entry["url"],
-                    http_code=url_entry["http_code"],
-                    content_hash=url_entry["content_hash"],
-                    full_content=url_entry["full_content"],
+                    url=url,
+                    http_code=http_code,
+                    content_hash=content_hash,
+                    full_content=full_content,
                     created_at=datetime.utcnow(),
                 )
                 session.add(url_snapshot)
+                logger.debug(f"Added URLSnapshot for URL: {url}")
 
             session.commit()
+            logger.debug(f"Snapshot '{name}' saved successfully.")
         except Exception as e:
             session.rollback()
-            logger.error(f"Failed to save snapshot: {e}")
+            logger.error(f"Failed to save snapshot '{name}': {e}")
             raise
         finally:
             session.close()
+            logger.debug("Database session closed.")
 
     def get_snapshots(self) -> list[Snapshot]:
         """
-        Retrieve all snapshots from the database.
+        Retrieves all snapshots from the database.
+
+        This method queries the database for all Snapshot records, orders them by
+        snapshot_id, and returns them as a list.
 
         Returns:
             list[Snapshot]: A list of Snapshot objects retrieved from the database.
 
         Raises:
-            Exception: If there is an error fetching snapshots from the database.
+            Exception: If there is an error while fetching snapshots from the database.
         """
 
+        logger.debug("Retrieving all snapshots from the database.")
         session = self.get_session()
         try:
-            return session.query(Snapshot).order_by(Snapshot.snapshot_id).all()
+            snapshots = session.query(Snapshot).order_by(Snapshot.snapshot_id).all()
+            logger.debug(f"Retrieved {len(snapshots)} snapshots.")
+            return snapshots
         except Exception as e:
             logger.error(f"Failed to fetch snapshots from DB: {e}")
             raise
         finally:
             session.close()
+            logger.debug("Database session closed.")
 
     def get_snapshot_data(self, snapshot_id: int) -> list[dict[str, any]]:
         """
         Retrieve snapshot data for a given snapshot ID.
 
         Args:
-            snapshot_id (int): The ID of the snapshot to retrieve.
+            snapshot_id (int): The ID of the snapshot to retrieve data for.
 
         Returns:
             list[dict[str, any]]: A list of dictionaries containing snapshot data. Each dictionary includes:
@@ -262,17 +297,19 @@ class DatabaseManager:
             - full_content (str): The full content of the snapshot.
 
         Raises:
-            Exception: If there is an error fetching the snapshot data.
+            Exception: If an error occurs while fetching the snapshot data.
         """
 
+        logger.debug(f"Retrieving data for snapshot_id: {snapshot_id}")
         session = self.get_session()
         try:
             snapshot = (
                 session.query(Snapshot).filter_by(snapshot_id=snapshot_id).one_or_none()
             )
             if not snapshot:
+                logger.debug(f"No snapshot found with snapshot_id: {snapshot_id}")
                 return []
-            return [
+            snapshot_data = [
                 {
                     "url": url_snapshot.url,
                     "http_code": url_snapshot.http_code,
@@ -281,8 +318,15 @@ class DatabaseManager:
                 }
                 for url_snapshot in snapshot.url_snapshots
             ]
+            logger.debug(
+                f"Retrieved data for snapshot_id: {snapshot_id} with {len(snapshot_data)} URL snapshots."
+            )
+            return snapshot_data
         except Exception as e:
-            logger.error(f"Failed to fetch snapshot data: {e}")
+            logger.error(
+                f"Failed to fetch snapshot data for snapshot_id {snapshot_id}: {e}"
+            )
             raise
         finally:
             session.close()
+            logger.debug("Database session closed.")

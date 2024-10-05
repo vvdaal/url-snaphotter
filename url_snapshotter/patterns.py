@@ -1,5 +1,7 @@
 # url_snapshotter/patterns.py
 
+# This module provides the functionality to define patterns for cleaning content.
+
 import re
 
 

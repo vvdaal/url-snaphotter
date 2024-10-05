@@ -1,5 +1,7 @@
 # url_snapshotter/commands/view_command.py
 
+# This module provides the functionality to view the details of a snapshot.
+
 from url_snapshotter.snapshot_manager import SnapshotManager
 from url_snapshotter.db_utils import DatabaseManager
 from url_snapshotter.input_handler import prompt_for_snapshot_id

@@ -1,11 +1,13 @@
 # url_snapshotter/snapshot_manager.py
 
+# This module provides the functionality to manage URL snapshots, including creating, comparing, and viewing snapshots.
+
 import asyncio
 from url_snapshotter.db_utils import DatabaseManager
 from url_snapshotter.snapshot_fetcher import fetch_and_clean_urls
-from url_snapshotter.logger_utils import setup_logger
+import structlog
 
-logger = setup_logger()
+logger = structlog.get_logger()
 
 
 class SnapshotManager:
