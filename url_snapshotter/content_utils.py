@@ -1,21 +1,45 @@
 # url_snapshotter/content_utils.py
 
+# This module provides the functionality to hash and clean content.
+
 import hashlib
 import re
-
-from url_snapshotter.logger_utils import setup_logger
+import structlog
 from url_snapshotter.patterns import get_patterns
 
-logger = setup_logger()
+logger = structlog.get_logger()
 
 
-def hash_content(content):
-    """Create an SHA-256 hash of the content."""
+def hash_content(content: str) -> str:
+    """
+    Create an SHA-256 hash of the given content.
+
+    Args:
+        content (str): The content to be hashed.
+
+    Returns:
+        str: The SHA-256 hash of the content as a hexadecimal string.
+    """
+
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
-def clean_content(content, url):
-    """Remove specific elements from content that can cause false positives in diffs."""
+def clean_content(content: str, url: str) -> str:
+    """
+    Remove specific elements from content that can cause false positives in diffs.
+
+    Args:
+        content (str): The HTML or text content to be cleaned.
+        url (str): The URL associated with the content, used for logging purposes.
+
+    Returns:
+        str: The cleaned content with specified patterns removed.
+
+    Raises:
+        Warning: Logs a warning if the pattern structure is invalid or if individual patterns/messages are invalid.
+        Error: Logs an error if an unexpected exception occurs during content processing.
+    """
+
     patterns = get_patterns()
 
     # Validate that patterns is a list of dictionaries

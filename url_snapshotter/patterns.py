@@ -1,12 +1,31 @@
 # url_snapshotter/patterns.py
 
+# This module provides the functionality to define patterns for cleaning content.
+
 import re
 
 
-def get_patterns():
-    """Returns a list of patterns for cleaning content."""
+def get_patterns() -> list[dict[str, any]]:
+    """
+    Returns a list of patterns for cleaning content.
+
+    Each pattern is a dictionary containing:
+    - "pattern": A compiled regular expression to match specific content.
+    - "message": A string message indicating the type of content detected and removed.
+
+    Feel free to expand this function with additional patterns as needed.
+
+    Patterns included:
+    1. Script nonce pattern.
+    2. CSRF token pattern.
+    3. Anti-forgery token pattern.
+    4. XSRF token pattern.
+
+    Returns:
+        list[dict[str, any]]: A list of dictionaries with compiled regex patterns and corresponding messages.
+    """
+
     return [
-        # Adjust regex to be more flexible in matching nonce patterns
         {
             "pattern": re.compile(
                 r'<script nonce="[^"]+">window\.\w+_CSP_NONCE\s*=\s*\'[^\']+\';</script>'

@@ -1,154 +1,198 @@
 # url-snapshotter
 
-`url-snapshotter` is a command-line tool written in Python designed for monitoring and tracking the status and content of a set of URLs over time. It enables you to create "snapshots" that capture the HTTP status codes and content of your URLs at a given point in time. By viewing and comparing these snapshots, you can efficiently identify any changes or anomalies in your web services.
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
+
+
+`url-snapshotter` is a powerful command-line tool built in Python for monitoring the health and content of web services over time. It works by creating "snapshots" that capture both the HTTP status codes and the content of specified URLs at particular moments. This tool allows you to create, view, and compare these snapshots to efficiently identify changes, regressions, or anomalies in your services.
+
+With `url-snapshotter`, you can ensure the reliability of your web platforms by regularly auditing the status and content of your URLs. Whether you want to track updates, verify expected changes after deployments, or spot unexpected issues, `url-snapshotter` helps you gain a deeper understanding of how your services evolve and ensures they function as expected.
 
 ## Table of Contents
+
 - [url-snapshotter](#url-snapshotter)
   - [Table of Contents](#table-of-contents)
   - [Key Use Cases](#key-use-cases)
   - [Core Features](#core-features)
   - [Quick Start with Docker](#quick-start-with-docker)
   - [General Usage](#general-usage)
-    - [Command-line Options (flags)](#command-line-options-flags)
+  - [Command-Line Options](#command-line-options)
   - [Examples](#examples)
-    - [Usage with Docker](#usage-with-docker)
-  - [Defining a URLs file](#defining-a-urls-file)
-  - [Development Setup with Pyenv](#development-setup-with-pyenv)
-      - [Using Pyenv to Set Up a Virtual Environment](#using-pyenv-to-set-up-a-virtual-environment)
+  - [Defining a URLs File](#defining-a-urls-file)
+  - [Development Setup with Pyenv and Poetry](#development-setup-with-pyenv-and-poetry)
+    - [Prerequisites](#prerequisites)
+    - [Setting Up Your Development Environment](#setting-up-your-development-environment)
+  - [Patterns and Custom Content Cleaning](#patterns-and-custom-content-cleaning)
+    - [Adding or Modifying Patterns](#adding-or-modifying-patterns)
   - [License](#license)
 
 ## Key Use Cases
 
-- **Pre-Maintenance Checks for Web Services**: Running `url-snapshotter` on a list of URLs (such as those defined in your Kubernetes `HTTPProxy` configurations) before performing maintenance or upgrades helps ensure that your services are behaving as expected.
-    - Create a snapshot before the upgrade to capture the current state.
-    - Create another snapshot after the upgrade, and use `url-snapshotter` to compare them.
-    - Instantly identify any discrepancies in HTTP status codes or content, allowing you to quickly detect issues and confirm successful maintenance.
+- **Pre-Maintenance Verification for Web Services**: Ensure seamless upgrades and maintenance by using `url-snapshotter` to verify your services before and after changes. Running `url-snapshotter` on a list of URLs, such as those in your Kubernetes `HTTPProxy` configurations, helps guarantee that your services remain consistent and reliable during maintenance.
 
-- **Tracking Changes Over Time**: Use `url-snapshotter` to periodically monitor a list of URLs and keep track of any content or status changes. This is helpful for identifying unexpected issues, verifying deployments, or validating expected changes in your web services.
+  - Create a pre-upgrade snapshot to capture the baseline state of your services, including HTTP status codes and content.
+  - Post-upgrade, take another snapshot and use `url-snapshotter` to compare both snapshots side-by-side, enabling you to quickly identify any discrepancies.
+  - Instantly detect potential issues to confirm successful maintenance, reducing the risk of unnoticed regressions or outages.
+
+- **Periodic Monitoring and Change Tracking**: Proactively monitor the state of your web services over time by using `url-snapshotter` to regularly capture snapshots of key URLs. This approach is invaluable for identifying unexpected issues, verifying deployments, and validating intended changes in your applications.
+
+  - Schedule periodic snapshots to keep an evolving record of the content and status codes of your services.
+  - Track unexpected changes, such as unauthorized modifications or emerging errors, and verify that new deployments function as intended.
+  - Validate and document changes over time to ensure alignment with your development and deployment goals, ultimately maintaining service quality.
 
 ## Core Features
 
-- **Asynchronous URL Fetching**: Efficiently fetches content from multiple URLs concurrently using asynchronous requests, with configurable concurrency for improved performance.
-- **Content Cleaning**: Automatically removes known dynamic elements from responses (like CSRF tokens or script nonces) to focus on meaningful content changes.
-- **Customizable Patterns for Cleaning Content**: The `patterns.py` file contains regex patterns used to clean up dynamic elements from the content. You can easily add, modify, or remove patterns to fit your needs.
-- **Detailed Logging**: Provides clear logging at different levels (INFO, DEBUG, WARNING) for easy monitoring and troubleshooting, with a `--debug` flag for deeper insights during execution.
+- **Efficient Asynchronous URL Fetching**: Speed up the process of monitoring large sets of URLs using asynchronous requests to fetch content concurrently. `url-snapshotter` leverages async I/O to handle multiple URLs at once, resulting in significantly improved performance, especially when dealing with long URL lists. This feature reduces wait times and allows for more frequent snapshots without a heavy time commitment.
+
+- **Comprehensive Snapshot Comparison**: Easily compare two snapshots to identify any changes in HTTP status codes or page content. This feature makes it simple to detect regressions, monitor modifications, or spot unexpected issues in your web services. By highlighting differences between snapshots, `url-snapshotter` helps you understand what has changed at a glance, empowering you to take corrective actions swiftly if necessary.
+
+- **Customizable Content Cleaning with Patterns**: Automatically clean up dynamic elements that frequently change, such as CSRF tokens, script nonces, or session identifiers, using custom regex patterns. This ensures that the comparisons are focused only on meaningful content changes. You can add, modify, or remove cleaning patterns to suit the specific needs of your web applications, providing a tailored approach to tracking content changes.
+
+- **Interactive Dynamic Snapshot Viewing**: View the details of any previously captured snapshot directly from the command line, including HTTP status codes and content hashes. The dynamic viewing capability helps you quickly verify the current state of URLs or investigate individual snapshots without having to dig through raw data.
+
+- **Adjustable Concurrency Control**: Set the level of concurrency during URL fetching to suit your needs—whether you want rapid fetching for small lists or more controlled fetching to reduce the load on your servers.
+
+- **Intuitive CLI Integration**: Execute all operations from a single command-line interface (`url-snapshotter`). Whether you're creating a new snapshot, comparing snapshots, or viewing snapshot details, the easy-to-use CLI streamlines these tasks. 
 
 ## Quick Start with Docker
 
-Running `url-snapshotter` is easiest with Docker ([Docker Overview](https://docs.docker.com/get-started/docker-overview/)). No manual setup is needed, just a single command:
+The easiest way to run `url-snapshotter` is with [Docker](https://docs.docker.com/engine/install/). This avoids the need to set up Python or dependencies on your machine:
 
 ```bash
-docker run -it --rm -v $(pwd):/app -w /app python:3.12-slim-bookworm sh -c "pip install --no-cache-dir -r requirements.txt && python cli.py"
+docker run -it --rm -v $(pwd):/app -w /app python:3.12-slim-bookworm sh -c "pip install --no-cache-dir -r requirements.txt && python -m url_snapshotter.cli"
 ```
 
 This command:
-- Pulls a Python Docker image that matches the current `.python-version` of this repository.
-- Mounts your current directory to the container.
-- Installs all dependencies from `requirements.txt` and runs `cli.py` which will start the CLI prompts for `url-snapshotter`.
+
+- Uses a Python Docker image
+- Mounts the current directory to the Docker container.
+- Installs dependencies and starts the `url-snapshotter` CLI prompts.
 
 ## General Usage
 
+The tool can be run using Poetry, which is used to manage dependencies and the virtual environment. Once installed, you can run `url-snapshotter` with:
+
 ```bash
-python cli.py [OPTIONS]
+url-snapshotter [OPTIONS]
 ```
 
-### Command-line Options (flags)
+Alternatively, via Python (requires dependencies installed and Python 3.12+):
 
-- `--create`: Create a new snapshot of URLs from a file.
-- `--view`: View the details of a snapshot.
-- `--compare`: Compare two snapshots to see changes.
-- `--file`: Specify the file containing URLs (one URL per line).
-- `--concurrent`: Number of concurrent requests for async fetching (default is 4).
-- `--debug`: Enable debug logging.
+```bash
+python -m url_snapshotter.cli [OPTIONS]
+```
+
+## Command-Line Options
+
+- **`create`**: Create a new snapshot of URLs from a file.
+- **`view`**: View the details of an existing snapshot.
+- **`compare`**: Compare two snapshots to see any differences.
+- **`-f, --file [PATH]`**: Specify the file containing URLs (one URL per line).
+- **`-c, --concurrent [NUM]`**: Number of concurrent requests for async fetching (default is 4).
+- **`--debug`**: Enable debug logging for more details.
+
+Note that if you don't give any options, by default the interactive CLI will start.
 
 ## Examples
 
-1. **Create a Snapshot**:
-    ```bash
-    python cli.py --create --file urls.txt
-    ```
+The examples assume you have Poetry setup properly and added to your path.
 
-2. **Compare Two Snapshots**:
-    ```bash
-    python cli.py --compare
-    ```
+1. **Create a Snapshot**
 
-3. **View a Snapshot**:
-    ```bash
-    python cli.py --view
-    ```
+   ```bash
+   url-snapshotter create -f urls.txt
+   ```
 
-4. **Adjust Concurrent Requests**:
-    ```bash
-    python cli.py --create --file urls.txt --concurrent 10
-    ```
+2. **Compare Two Snapshots**
 
-### Usage with Docker
+   ```bash
+   url-snapshotter compare
+   ```
 
-This command will open a bash shell inside a Python container, where you can execute url-snapshotter using any of the available options, such as python cli.py, along with other examples as needed.
+3. **View a Snapshot**
 
-```bash
-docker run -it --rm -v $(pwd):/app -w /app python:3.12-slim-bookworm sh -c "pip install --no-cache-dir -r requirements.txt && bash"
-```
+   ```bash
+   url-snapshotter view --snapshot-id 1
+   ```
 
-## Defining a URLs file
+4. **Adjust Concurrent Requests**
 
-The `urls.txt` file (or whatever you name it) is a simple text file that contains a list of URLs you want to create a snapshot of. Each URL should be on a separate line without any extra spaces or characters. Here's a brief example:
+   ```bash
+   url-snapshotter create -f urls.txt -c 10
+   ```
+
+## Defining a URLs File
+
+The `urls.txt` file (or any name you choose) is a simple text file containing the list of URLs you want to monitor. Each URL should be on a separate line without extra spaces or characters. Example:
 
 ```
 https://example.com
 https://another-example.com
-https://cool-api.example.com/subpage/awesome-article
+https://api.example.com/subpage/endpoint
 ```
 
-When creating a snapshot with `url-snapshotter`, this file will be used to fetch the HTTP status and content of each listed URL.
+## Development Setup with Pyenv and Poetry
 
-To create a snapshot, run:
-```bash
-python cli.py --create --file urls.txt
+If you're planning to contribute or extend `url-snapshotter`, the best way to set up your environment is using **pyenv** and **Poetry**.
+
+### Prerequisites
+
+- **[Pyenv](https://github.com/pyenv/pyenv)**: For managing different Python versions.
+- **[Poetry](https://python-poetry.org/)**: For dependency management and packaging.
+
+### Setting Up Your Development Environment
+
+1. **Install Pyenv**
+   Follow the instructions in the [pyenv GitHub repository](https://github.com/pyenv/pyenv).
+
+2. **Install the Correct Python Version**
+   Use pyenv to install the version specified in the `pyproject.toml`:
+
+   ```bash
+   pyenv install 3.12.7
+   ```
+
+3. **Install Poetry**
+   Install Poetry for dependency management:
+
+   ```bash
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+
+4. **Create a Virtual Environment and Install Dependencies**
+
+   ```bash
+   pyenv virtualenv 3.12.7 url-snapshotter-env
+   pyenv activate url-snapshotter-env
+   poetry install
+   ```
+
+5. **Run the Application**
+   To run the CLI directly after installing the dependencies:
+
+   ```bash
+   poetry run url-snapshotter
+   ```
+
+## Patterns and Custom Content Cleaning
+
+The `patterns.py` file contains regex patterns that are used to clean up dynamic elements from the content of the fetched URLs. This is crucial for removing elements that may change frequently (e.g., CSRF tokens, timestamps, session identifiers), allowing you to focus only on meaningful content changes.
+
+Each pattern in `patterns.py` consists of a regex pattern and an optional message to describe what is being cleaned up.
+
+### Adding or Modifying Patterns
+
+To add a new pattern, simply append it to the list in the `get_patterns` function in `url_snapshotter/patterns.py`. Each entry should be a dictionary containing a compiled regex pattern and an optional message for logging purposes.
+
+For example, to add a new pattern to remove a dynamic authentication token, you can add:
+
+```python
+{
+    "pattern": re.compile(r'auth_token="[^"]+"'),
+    "message": "Authentication token detected and removed."
+}
 ```
 
-Or, if you prefer entering the filename at a prompt:
-```bash
-python cli.py --create
-```
-
-This will prompt you for the file name.
-
-## Development Setup with Pyenv
-
-Before using `url-snapshotter`, ensure all dependencies are installed. My recommended way to handle Python environments is to use `pyenv`.
-
-#### Using Pyenv to Set Up a Virtual Environment
-
-1. **Install `pyenv`**: Follow the installation instructions in the [pyenv GitHub repository](https://github.com/pyenv/pyenv).
-
-2. **Install Python Version**: Once `pyenv` is set up, install the required Python version as specified in the `.python-version` file:
-   ```bash
-   pyenv install 3.12.6
-   ```
-
-3. **Create a Virtual Environment**: Use `pyenv virtualenv` to create a new virtual environment for the project:
-   ```bash
-   pyenv virtualenv venv-url-snapshotter
-   ```
-
-4. **Activate the Virtual Environment**:
-   ```bash
-   pyenv activate venv-url-snapshotter
-   ```
-
-5. **Install Requirements**: With the virtual environment active, install the project dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-To deactivate the environment, simply run:
-```bash
-pyenv deactivate
-```
-
-By using `pyenv`, you can easily manage your Python versions and isolate dependencies for different projects. For more detailed instructions, refer to the official [pyenv documentation](https://github.com/pyenv/pyenv).
+Make sure the regex patterns are well-tested to avoid removing unintended content.
 
 ## License
 
