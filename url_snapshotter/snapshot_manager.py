@@ -12,17 +12,19 @@ from rich.markup import escape
 
 logger = structlog.get_logger()
 
+
 @dataclass
 class URLSnapshot:
     """
     Represents a single URL snapshot with its metadata.
     """
+
     url: str
     http_code: str
     content_hash: str
     full_content: str
 
-    def is_different(self, other: 'URLSnapshot') -> bool:
+    def is_different(self, other: "URLSnapshot") -> bool:
         """
         Compare this snapshot with another to check for differences.
 
@@ -33,8 +35,7 @@ class URLSnapshot:
             bool: True if any meaningful field is different, False otherwise.
         """
         return (
-            self.http_code != other.http_code or 
-            self.content_hash != other.content_hash
+            self.http_code != other.http_code or self.content_hash != other.content_hash
         )
 
 
@@ -55,7 +56,54 @@ class SnapshotManager:
         """
         self.db_manager = db_manager
 
-    def create_snapshot(self, urls: list[str], name: str, concurrent: int, batch_size: int = 50):
+    def view_snapshot(self, snapshot_id: int) -> list[dict[str, str]]:
+        """
+        Retrieve and view the details of a specific snapshot.
+
+        Args:
+            snapshot_id (int): The unique identifier of the snapshot to retrieve.
+
+        Returns:
+            list[dict[str, str]]: A list of dictionaries containing the snapshot details.
+                                Each dictionary includes URL, HTTP code, content hash,
+                                and the full cleaned content of the snapshot.
+                                Returns an empty list if no data is found or an error occurs.
+        """
+        logger.info("Viewing snapshot", snapshot_id=snapshot_id)
+
+        try:
+            # Retrieve snapshot data from the database
+            snapshot_data = self.db_manager.get_snapshot_data(snapshot_id)
+
+            if not snapshot_data:
+                logger.warning("No data found for snapshot", snapshot_id=snapshot_id)
+                return []
+
+            # Format snapshot data into list of dicts for display
+            formatted_data = [
+                {
+                    "url": entry["url"],
+                    "http_code": entry.get("http_code", "Unknown"),
+                    "content_hash": entry.get("content_hash", ""),
+                    "full_content": escape(entry.get("full_content", "")),
+                }
+                for entry in snapshot_data
+            ]
+
+            logger.info("Successfully retrieved snapshot data", snapshot_id=snapshot_id)
+            return formatted_data
+
+        except Exception as e:
+            self._log_exception(
+                "An error occurred while viewing snapshot",
+                e,
+                {"snapshot_id": snapshot_id},
+            )
+            return []
+
+    def create_snapshot(
+        self, urls: list[str], name: str, concurrent: int, batch_size: int = 25
+    ):
         """
         Create a snapshot of the provided URLs and save it to the database.
 
@@ -65,11 +113,15 @@ class SnapshotManager:
             concurrent (int): The number of concurrent requests to make while fetching URLs.
             batch_size (int): Number of URLs to fetch concurrently per batch to optimize performance.
         """
-        logger.info("Creating snapshot", name=name, concurrent=concurrent, total_urls=len(urls))
+        logger.info(
+            "Creating snapshot", name=name, concurrent=concurrent, total_urls=len(urls)
+        )
 
         try:
             # Use asyncio.run to perform async fetch and clean
-            url_data = asyncio.run(self.fetch_and_clean_urls(urls, concurrent, batch_size))
+            url_data = asyncio.run(
+                self.fetch_and_clean_urls(urls, concurrent, batch_size)
+            )
 
             # Save the snapshot to the database
             self.db_manager.save_snapshot(name, url_data)
@@ -98,16 +150,20 @@ class SnapshotManager:
 
         # Process URLs in batches to avoid overloading system or API rate limits
         for i in range(0, len(urls), batch_size):
-            batch = urls[i:i + batch_size]
+            batch = urls[i : i + batch_size]
             try:
                 batch_results = await self._fetch_urls_batch(batch, concurrent)
                 all_results.extend(batch_results)
             except Exception as e:
-                self._log_exception("Error fetching a batch of URLs", e, {"batch_size": len(batch)})
+                self._log_exception(
+                    "Error fetching a batch of URLs", e, {"batch_size": len(batch)}
+                )
 
         return all_results
 
-    async def _fetch_urls_batch(self, urls_batch: list[str], concurrent: int) -> list[dict[str, str | int]]:
+    async def _fetch_urls_batch(
+        self, urls_batch: list[str], concurrent: int
+    ) -> list[dict[str, str | int]]:
         """
         Fetch a batch of URLs concurrently.
 
@@ -156,7 +212,9 @@ class SnapshotManager:
                     "full_content": "",
                 }
         except Exception as e:
-            self._log_exception(f"Error processing URL: {url}", e, {"http_code": http_code})
+            self._log_exception(
+                f"Error processing URL: {url}", e, {"http_code": http_code}
+            )
             return {
                 "url": url,
                 "http_code": http_code,
@@ -203,8 +261,12 @@ class SnapshotManager:
         differences = []
 
         # Convert list of dicts to dict with URL as key for faster comparison
-        snapshot1_dict = {entry["url"]: URLSnapshot(**entry) for entry in snapshot1_data}
-        snapshot2_dict = {entry["url"]: URLSnapshot(**entry) for entry in snapshot2_data}
+        snapshot1_dict = {
+            entry["url"]: URLSnapshot(**entry) for entry in snapshot1_data
+        }
+        snapshot2_dict = {
+            entry["url"]: URLSnapshot(**entry) for entry in snapshot2_data
+        }
 
         all_urls = set(snapshot1_dict.keys()).union(snapshot2_dict.keys())
 
@@ -219,10 +281,18 @@ class SnapshotManager:
                         "url": url,
                         "snapshot1_http_code": data1.http_code if data1 else "N/A",
                         "snapshot2_http_code": data2.http_code if data2 else "N/A",
-                        "snapshot1_content_hash": data1.content_hash if data1 else "",
-                        "snapshot2_content_hash": data2.content_hash if data2 else "",
-                        "snapshot1_full_content": escape(data1.full_content) if data1 else "",
-                        "snapshot2_full_content": escape(data2.full_content) if data2 else "",
+                        "snapshot1_content_hash": (
+                            data1.content_hash if data1 else "N/A"
+                        ),
+                        "snapshot2_content_hash": (
+                            data2.content_hash if data2 else "N/A"
+                        ),
+                        "snapshot1_full_content": (
+                            escape(data1.full_content) if data1 else "N/A"
+                        ),
+                        "snapshot2_full_content": (
+                            escape(data2.full_content) if data2 else "N/A"
+                        ),
                     }
                 )
                 logger.info("URL has changed", url=url)

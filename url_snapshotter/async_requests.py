@@ -72,16 +72,26 @@ async def fetch_all_urls(
 
     results = []
     connector = aiohttp.TCPConnector(limit=concurrent)
+    timeout = aiohttp.ClientTimeout(total=5)  # Set a 5-second timeout for each request
 
-    async with aiohttp.ClientSession(connector=connector) as session:
-        tasks = [fetch_url(session, url, max_retries) for url in urls]
+    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+        logger.info(f"Starting to fetch {len(urls)} URLs with concurrency {concurrent}")
 
-        # Use asyncio.gather to collect all results
+        tasks = [fetch_url(session, url, max_retries=max_retries) for url in urls]
+
+        # Use asyncio.gather to collect all results with exception handling
         completed_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Process each result individually
-        for result in completed_results:
+        for index, result in enumerate(completed_results):
+            if isinstance(result, Exception):
+                logger.error(
+                    f"Task {index+1}/{len(urls)}: Encountered an exception: {result}"
+                )
+            else:
+                logger.debug(f"Task {index+1}/{len(urls)}: Completed successfully.")
             process_task_result(result, results)
+
+        logger.info(f"Completed fetching {len(urls)} URLs.")
 
     return results
 

@@ -66,6 +66,8 @@ def configure_structlog(debug: bool = False):
         file_handler.setLevel(logging.INFO)
 
     # Set formatter for console and file handlers
-    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s.%(funcName)s: %(message)s"
+    )
     console_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)
