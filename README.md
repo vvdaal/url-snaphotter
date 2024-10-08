@@ -23,6 +23,7 @@ With `url-snapshotter`, you can ensure the reliability of your web platforms by 
     - [Setting Up Your Development Environment](#setting-up-your-development-environment)
   - [Patterns and Custom Content Cleaning](#patterns-and-custom-content-cleaning)
     - [Adding or Modifying Patterns](#adding-or-modifying-patterns)
+  - [FAQ](#FAQ)]
   - [License](#license)
 
 ## Key Use Cases
@@ -193,6 +194,30 @@ For example, to add a new pattern to remove a dynamic authentication token, you 
 ```
 
 Make sure the regex patterns are well-tested to avoid removing unintended content.
+
+## FAQ
+
+### (Kubernetes) How do I quickly generate a urls.txt with all configured httpproxies and ingresses?
+
+```bash
+(
+  # Get HTTPProxies URLs
+  kubectl get httpproxies --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.virtualhost.fqdn}{'\n'}{end}"
+  
+  # Get Ingresses URLs
+  kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}"
+) | sort | uniq > urls.txt
+```
+
+This command is designed to list all fully qualified domain names (FQDNs) from both HTTPProxy and Ingress resources in a Kubernetes cluster, ensuring there are no duplicate URLs in the final output. 
+
+**Note** It's common that multiple virtualhosts point to the same deployment; you might want to filter the `urls.txt` and adjust accordingly.
+
+**Note** If you (somehow) use an Ingress controller that does not make use of `httpproxies` or `ingresses`, you might have to adjust the command or construct your own.
+
+### (Network) My resources are behind a VPN or proxy
+
+Make sure you run `url-snapshotter` from a machine that has access to the URLs. If you can `curl` or `wget` a URL, then `url-snapshotter` should work fine.
 
 ## License
 
