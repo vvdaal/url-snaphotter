@@ -23,16 +23,20 @@ With `url-snapshotter`, you can ensure the reliability of your web platforms by 
     - [Setting Up Your Development Environment](#setting-up-your-development-environment)
   - [Patterns and Custom Content Cleaning](#patterns-and-custom-content-cleaning)
     - [Adding or Modifying Patterns](#adding-or-modifying-patterns)
-  - [FAQ](#FAQ)]
+  - [FAQ](#faq)
+    - [(Kubernetes) How do I quickly generate a urls.txt with all configured httpproxy crd and ingresses?](#kubernetes-how-do-i-quickly-generate-a-urlstxt-with-all-configured-httpproxy-crd-and-ingresses)
+    - [(Kubernetes) How do I quickly generate a urls.txt for ingresses?](#kubernetes-how-do-i-quickly-generate-a-urlstxt-for-ingresses)
+    - [(Kubernetes) How do I quickly generate a urls.txt for gateways and httproutes?](#kubernetes-how-do-i-quickly-generate-a-urlstxt-for-gateways-and-httproutes)
+    - [(Network) My resources are behind a VPN or proxy](#network-my-resources-are-behind-a-vpn-or-proxy)
   - [License](#license)
 
 ## Key Use Cases
 
-- **Pre-Maintenance Verification for Web Services**: Ensure seamless upgrades and maintenance by using `url-snapshotter` to verify your services before and after changes. Running `url-snapshotter` on a list of URLs, such as those in your Kubernetes `HTTPProxy` configurations, helps guarantee that your services remain consistent and reliable during maintenance.
+- **Pre-Maintenance Verification for Web Services**: Ensure smooth upgrades and maintenance by using `url-snapshotter` to validate your services before and after any infrastructure changes. Whether you're managing websites through Kubernetes (like with an Ingress Controller), or handling broader infrastructure updates such as cluster upgrades, `url-snapshotter` helps ensure your services remain consistent and reliable throughout the maintenance process.
 
   - Create a pre-upgrade snapshot to capture the baseline state of your services, including HTTP status codes and content.
-  - Post-upgrade, take another snapshot and use `url-snapshotter` to compare both snapshots side-by-side, enabling you to quickly identify any discrepancies.
-  - Instantly detect potential issues to confirm successful maintenance, reducing the risk of unnoticed regressions or outages.
+  - After the upgrade, take another snapshot and use `url-snapshotter` to compare both snapshots side-by-side, allowing you to quickly identify any discrepancies.
+  - Instantly detect potential issues to confirm successful maintenance, reducing the risk of unnoticed regressions or service outages.
 
 - **Periodic Monitoring and Change Tracking**: Proactively monitor the state of your web services over time by using `url-snapshotter` to regularly capture snapshots of key URLs. This approach is invaluable for identifying unexpected issues, verifying deployments, and validating intended changes in your applications.
 
@@ -42,11 +46,11 @@ With `url-snapshotter`, you can ensure the reliability of your web platforms by 
 
 ## Core Features
 
-- **Efficient Asynchronous URL Fetching**: Speed up the process of monitoring large sets of URLs using asynchronous requests to fetch content concurrently. `url-snapshotter` leverages async I/O to handle multiple URLs at once, resulting in significantly improved performance, especially when dealing with long URL lists. This feature reduces wait times and allows for more frequent snapshots without a heavy time commitment.
+- **Efficient Asynchronous URL Fetching**: Speed up the process of monitoring large sets of URLs using asynchronous requests to fetch content concurrently. `url-snapshotter` makes use of async I/O to handle multiple URLs at once, resulting in significantly improved performance, especially when dealing with long URL lists.
 
-- **Comprehensive Snapshot Comparison**: Easily compare two snapshots to identify any changes in HTTP status codes or page content. This feature makes it simple to detect regressions, monitor modifications, or spot unexpected issues in your web services. By highlighting differences between snapshots, `url-snapshotter` helps you understand what has changed at a glance, empowering you to take corrective actions swiftly if necessary.
+- **Comprehensive Snapshot Comparison**: Easily compare two snapshots to identify any changes in HTTP status codes or page content. Detect regression, monitor modifications, or spot unexpected issues in your web services. By highlighting differences between snapshots, `url-snapshotter` helps you understand what has changed at a glance, empowering you to take corrective actions swiftly if necessary.
 
-- **Customizable Content Cleaning with Patterns**: Automatically clean up dynamic elements that frequently change, such as CSRF tokens, script nonces, or session identifiers, using custom regex patterns. This ensures that the comparisons are focused only on meaningful content changes. You can add, modify, or remove cleaning patterns to suit the specific needs of your web applications, providing a tailored approach to tracking content changes.
+- **Customizable Content Cleaning with Patterns**: Automatically clean up dynamic elements that frequently change, such as CSRF tokens, script nonces, or session identifiers, using custom regex patterns. This ensures that the comparisons are focused only on meaningful content changes. You can add, modify, or remove cleaning patterns to suit the specific needs of your web applications.
 
 - **Interactive Dynamic Snapshot Viewing**: View the details of any previously captured snapshot directly from the command line, including HTTP status codes and content hashes. The dynamic viewing capability helps you quickly verify the current state of URLs or investigate individual snapshots without having to dig through raw data.
 
@@ -197,15 +201,18 @@ Make sure the regex patterns are well-tested to avoid removing unintended conten
 
 ## FAQ
 
-### (Kubernetes) How do I quickly generate a urls.txt with all configured httpproxies and ingresses?
+### (Kubernetes) How do I quickly generate a urls.txt with all configured httpproxy crd and ingresses?
+
+This assumes you use Contour with `httpproxy` crds and also the regular `ingress` objects. 
 
 ```bash
 (
   # Get HTTPProxies URLs
   kubectl get httpproxies --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.virtualhost.fqdn}{'\n'}{end}"
   
-  # Get Ingresses URLs
-  kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}"
+  # Get Ingresses URLs and ensure only the first URL (if multiple) is grabbed
+  kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}" \
+  | awk '{print $1}'  # This will grab only the first URL in case there are multiple
 ) | sort | uniq > urls.txt
 ```
 
@@ -213,7 +220,32 @@ This command is designed to list all fully qualified domain names (FQDNs) from b
 
 **Note** It's common that multiple virtualhosts point to the same deployment; you might want to filter the `urls.txt` and adjust accordingly.
 
-**Note** If you (somehow) use an Ingress controller that does not make use of `httpproxies` or `ingresses`, you might have to adjust the command or construct your own.
+### (Kubernetes) How do I quickly generate a urls.txt for ingresses?
+
+Just using `ingress` objects? Awesome, use this snippet.
+
+```
+(
+  # Get Ingresses URLs and ensure only the first URL (if multiple) is grabbed
+  kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}" \
+  | awk '{print $1}'  # This will grab only the first URL in case there are multipe
+) | sort | uniq > urls.txt
+```
+
+### (Kubernetes) How do I quickly generate a urls.txt for gateways and httproutes?
+
+Using the somewhat new `gateway` object or `httproutes`? Got you covered.
+
+```bash
+(
+  # Get Gateways hostnames
+  kubectl get gateways --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.listeners[*].hostname}{'\n'}{end}"
+  
+  # Get HTTPRoute hostnames
+  kubectl get httproutes --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.hostnames[*]}{'\n'}{end}" \
+  | awk '{print $1}'  # Only take the first hostname if multiple
+) | sort | uniq > urls.txt
+``` 
 
 ### (Network) My resources are behind a VPN or proxy
 
