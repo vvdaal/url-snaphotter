@@ -224,7 +224,7 @@ This command is designed to list all fully qualified domain names (FQDNs) from b
 
 Just using `ingress` objects? Awesome, use this snippet.
 
-```
+```bash
 (
   # Get Ingresses URLs and ensure only the first URL (if multiple) is grabbed
   kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}" \
