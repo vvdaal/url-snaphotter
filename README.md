@@ -23,7 +23,7 @@ With `url-snapshotter`, you can ensure the reliability of your web platforms by 
     - [Setting Up Your Development Environment](#setting-up-your-development-environment)
   - [Patterns and Custom Content Cleaning](#patterns-and-custom-content-cleaning)
     - [Adding or Modifying Patterns](#adding-or-modifying-patterns)
-  - [FAQ](#FAQ)]
+  - [FAQ](#FAQ)
   - [License](#license)
 
 ## Key Use Cases
@@ -204,8 +204,9 @@ Make sure the regex patterns are well-tested to avoid removing unintended conten
   # Get HTTPProxies URLs
   kubectl get httpproxies --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.virtualhost.fqdn}{'\n'}{end}"
   
-  # Get Ingresses URLs
-  kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}"
+  # Get Ingresses URLs and ensure only the first URL (if multiple) is grabbed
+  kubectl get ingresses --all-namespaces -o jsonpath="{range .items[*]}https://{.spec.rules[*].host}{'\n'}{end}" \
+  | awk '{print $1}'  # This will grab only the first URL in case there are multiple
 ) | sort | uniq > urls.txt
 ```
 
